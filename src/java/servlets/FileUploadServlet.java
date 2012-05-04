@@ -126,7 +126,7 @@ public class FileUploadServlet extends HttpServlet implements Servlet {
                                 myFileName = "",
                                 slashType = (myFullFileName.lastIndexOf("\\") > 0) ? "\\" : "/"; // Windows o UNIX
                         int startIndex = myFullFileName.lastIndexOf(slashType);
-
+                        System.out.println("filename"+myFullFileName);
                         // Se ignora la ruta y se obtiene el nombre de archivo
                         myFileName = myFullFileName.substring(startIndex + 1, myFullFileName.length());
 

@@ -6,6 +6,7 @@ package servlets;
  */
 
 
+import java.sql.Statement;
 import java.io.*;
 import java.util.Iterator;
 
@@ -15,6 +16,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletContext;
@@ -123,8 +125,12 @@ public class ReadingModule extends HttpServlet {
              int idHorarios = 0;
              String salon = "";
              String [] diaSemana = new String [21];
-             String horaInicio = "";
-             String horaFin = "";
+             Date hora = null;
+             int horaInicio = 0;
+             int horaFin = 0;
+             int minutosInicio = 0;
+             int minutosFin = 0;
+             
              
              // Telefono
              String telefono = "";
@@ -145,10 +151,13 @@ public class ReadingModule extends HttpServlet {
              conexion = null;
              conexion = DriverManager.getConnection(url,usuario,password); 
              PreparedStatement pstmt = null;
-             String cleanTables = "delete from grupo; "
-                                     + " delete from horarios;";
-                  pstmt = conexion.prepareStatement(cleanTables);
-                  pstmt.clearParameters();
+             String cleanTables1 = "delete from grupo; ";
+             String cleanTables2 = "delete from horarios;";
+             Statement statement = conexion.createStatement();
+                 
+                  statement.executeUpdate(cleanTables1);
+                  statement.executeUpdate(cleanTables2);
+                 
                   
                   
              for (int i=1;i<dataHolder.size(); i++){
@@ -189,8 +198,10 @@ public class ReadingModule extends HttpServlet {
                      case "inscritos": alumnosInscritos = Integer.parseInt(stringCellValue.substring(0, stringCellValue.indexOf("."))); break;
                      case "atributos": atributos = stringCellValue; break;
                      case "#excint": claseExclusiva = Integer.parseInt(stringCellValue.substring(0, stringCellValue.indexOf("."))); break;
-                     case "horainicio1": horaInicio = stringCellValue; break;
-                     case "horafin1": horaFin = stringCellValue; break;
+                     case "horainicio1": if(!stringCellValue.equals("") ) {hora = myCell.getDateCellValue(); horaInicio=hora.getHours(); 
+                                        minutosInicio=hora.getMinutes(); }break;
+                     case "horafin1": if(!stringCellValue.equals("")) {hora = myCell.getDateCellValue(); horaFin = hora.getHours();
+                                      minutosFin = hora.getMinutes();} break;
                      case "lu1": if(stringCellValue != null && !stringCellValue.equals("")  ){ diaSemana[0] = "Lunes";} break;
                      case "ma1": if(stringCellValue != null && !stringCellValue.equals("")){ diaSemana[1] = "Martes";} break;
                      case "mi1": if(stringCellValue != null && !stringCellValue.equals("")){ diaSemana[2] = "Miercoles";} break;
@@ -212,8 +223,11 @@ public class ReadingModule extends HttpServlet {
                      case "vi3": if(stringCellValue != null && !stringCellValue.equals("")){ diaSemana[18] = "Viernes";} break;
                      case "sa3": if(stringCellValue != null && !stringCellValue.equals("")){ diaSemana[19] = "Sabado";} break;
                      case "do3": if(stringCellValue != null && !stringCellValue.equals("")){ diaSemana[20] = "Domingo";} break;
-                     case "edificio1": salon = stringCellValue; break;
-                     case "salón1": salon.concat(stringCellValue); break;
+                     case "edificio1": if(!stringCellValue.equals("")) {salon = stringCellValue.substring(2, stringCellValue.length());} break;
+                     case "salón1": if(stringCellValue.indexOf(".") != -1){salon += stringCellValue.substring(0, stringCellValue.indexOf("."));
+                                    } else {
+                                        salon += stringCellValue;
+                                    }break;
                      case "#profesores": numeroProfesores = Integer.parseInt(stringCellValue.substring(0, stringCellValue.indexOf("."))); break;
                      case "porcentaje1": porcentaje[0] = stringCellValue; break;
                      case "porcentaje2": porcentaje[1] = stringCellValue; break;
@@ -252,7 +266,7 @@ public class ReadingModule extends HttpServlet {
                  
                   String checkUser = "SELECT u.indexUsuario "
                                     + "FROM usuario u "
-                                    + "WHERE u.idUsuario = ? OR u.idUsuario = ? OR u.idUsuario = ?";
+                                    + "WHERE u.idUsuario = ? ";
                   String checkPer = "SELECT p.periodo "
                           + " FROM periodo p "
                           + " WHERE p.idPeriodo = ?";
@@ -309,9 +323,7 @@ public class ReadingModule extends HttpServlet {
                       pstmt.clearParameters();
                       
                     pstmt = conexion.prepareStatement(checkUser);
-                      pstmt.setString(1,idUsuario[0]);
-                      pstmt.setString(2,idUsuario[1]);
-                      pstmt.setString(3,idUsuario[2]);
+                      pstmt.setString(1,idUsuario[cont]);
                       rs = pstmt.executeQuery();
                       if(!rs.next()){
                           pstmt = conexion.prepareStatement(queryUsuario); // create a statement
@@ -323,9 +335,7 @@ public class ReadingModule extends HttpServlet {
                           pstmt.executeUpdate(); // execute insert statement
                           pstmt.clearParameters();
                       }else{ 
-                          indexUsuario[0] = rs.getInt(1);
-                          if(rs.next()){indexUsuario[1] = rs.getInt(1);}
-                          if(rs.next()){indexUsuario[2] = rs.getInt(1);}
+                          indexUsuario[cont] = rs.getInt(1);
                       }
                       
                       pstmt = conexion.prepareStatement(fkGrupo);
@@ -381,7 +391,7 @@ public class ReadingModule extends HttpServlet {
                       
                    for(int k=0; k < 20; k++){
                        if(diaSemana[k] != null){
-                       if(!diaSemana[k].equals("")){
+                       if(!diaSemana[k].equals("")){                           
                               pstmt = conexion.prepareStatement(queryHorarios);
                               pstmt.setInt(1, crn); // set input parameter 1
                               pstmt.setString(2, materia); // set input parameter 2
@@ -391,8 +401,8 @@ public class ReadingModule extends HttpServlet {
                               pstmt.setInt(6, idPeriodo);
                               pstmt.setString(7, salon);
                               pstmt.setString(8, diaSemana[k]);
-                              pstmt.setString(9, horaInicio);
-                              pstmt.setString(10, horaFin);                               
+                              pstmt.setString(9, horaInicio+":"+minutosInicio);
+                              pstmt.setString(10, horaFin+":"+minutosFin);                               
                               pstmt.executeUpdate(); // execute insert statement
                               pstmt.clearParameters();
                           }                          
